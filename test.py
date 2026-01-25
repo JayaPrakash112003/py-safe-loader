@@ -184,12 +184,12 @@ class MyApplication:
             
             # Use loaded modules safely
             if 'module1' in self.modules:
-                success, result, error = self.loader.safe_execute(
+                self.loader.safe_execute(
                     self.modules['module1'].greet
                 )
             
             if 'module2' in self.modules:
-                success, result, error = self.loader.safe_execute(
+                self.loader.safe_execute(
                     self.modules['module2'].module2_function
                 )
             
