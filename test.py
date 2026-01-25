@@ -354,3 +354,172 @@ def validate_environment():
 
 # Run environment check
 is_compatible = validate_environment()
+
+
+# ============================================================================
+# EXAMPLE 11: Dependency Version Checker - Testing passlib and bcrypt
+# ============================================================================
+print("\n\n11. DEPENDENCY VERSION CHECKER - PASSLIB & BCRYPT")
+print("-"*60)
+
+def test_passlib_bcrypt_dependencies():
+    """
+    Test dependency version checking for passlib and bcrypt packages.
+    Validates that installed versions meet minimum requirements and checks 
+    against the latest available versions from PyPI.
+    """
+    
+    print("\n🔐 Testing password hashing library dependencies")
+    print("=" * 60)
+    
+    # Define minimum requirements for passlib and bcrypt
+    required_packages = {
+        "passlib": ">=1.7.0",  # Minimum version for secure hashing
+        "bcrypt": ">=3.2.0",   # Minimum version with security patches
+    }
+    
+    # Latest stable versions from PyPI (as of 2026)
+    latest_versions = {
+        "passlib": ["1.7.4", "1.7.3", "1.7.2", "1.7.1", "1.7.0"],
+        "bcrypt": ["4.1.2", "4.1.1", "4.1.0", "4.0.1", "4.0.0", "3.2.2", "3.2.1", "3.2.0"],
+    }
+    
+    print("\n📋 Test Case 1: Check if packages meet minimum requirements")
+    print("-" * 60)
+    result1 = dependency_version_checker(
+        required_packages,
+        verbose=True
+    )
+    
+    if result1['all_satisfied']:
+        print("✅ All password hashing dependencies are satisfied!")
+    else:
+        print("⚠️ Some dependencies need attention:")
+        for pkg, info in result1['results'].items():
+            if not info['satisfied']:
+                print(f"  - {pkg}: {info['message']}")
+    
+    print("\n📋 Test Case 2: Check against latest available versions")
+    print("-" * 60)
+    result2 = dependency_version_checker(
+        required_packages,
+        available_for_adjustment=latest_versions,
+        verbose=True
+    )
+    
+    # Provide upgrade recommendations
+    print("\n📦 Upgrade Recommendations:")
+    print("-" * 60)
+    for pkg, info in result2['results'].items():
+        if info['satisfied']:
+            current_version = info.get('installed_version', 'unknown')
+            print(f"  {pkg}:")
+            print(f"    Current: {current_version}")
+            print(f"    Latest:  {latest_versions[pkg][0]}")
+            
+            if info.get('adjustment_suggested'):
+                print(f"    💡 Suggested: pip install --upgrade {pkg}=={info['adjustment_suggested']}")
+            else:
+                print(f"    ✅ Already at recommended version")
+        else:
+            print(f"  {pkg}: Not installed")
+            print(f"    💡 Install: pip install {pkg}>={required_packages[pkg].lstrip('>=')}")
+    
+    print("\n" + "=" * 60)
+    
+    # Security best practices note
+    print("\n🔒 Security Note:")
+    print("  For production environments, always use:")
+    print("  - passlib: Latest version for strongest password hashing")
+    print("  - bcrypt: Latest version for patched security vulnerabilities")
+    
+    return result2, latest_versions
+
+# Run the passlib and bcrypt dependency test
+test_result, available_versions = test_passlib_bcrypt_dependencies()
+
+# Print final summary with version pinning
+print("\n" + "=" * 60)
+print("📊 FINAL TEST SUMMARY - VERSION PINNING")
+print("=" * 60)
+
+if test_result['all_satisfied']:
+    print("✅ All password hashing dependencies are properly configured\n")
+    print("📌 Recommended Version Pinning (requirements.txt):")
+    print("-" * 60)
+    for pkg, info in test_result['results'].items():
+        if info['satisfied']:
+            current = info.get('installed_version', 'unknown')
+            compatible_latest = available_versions.get(pkg, ['unknown'])[0]
+            suggested = info.get('adjustment_suggested', current)
+            
+            print(f"\n{pkg}:")
+            print(f"  Current installed: {current}")
+            print(f"  Compatible latest: {compatible_latest}")
+            print(f"  Pin for stability: {pkg}=={compatible_latest}")
+            
+    print("\n\n📋 Complete requirements.txt entry:")
+    print("-" * 60)
+    for pkg in test_result['results'].keys():
+        if test_result['results'][pkg]['satisfied']:
+            latest_version = available_versions.get(pkg, ['unknown'])[0]
+            print(f"{pkg}=={latest_version}")
+    
+    print("\n💡 Alternative with minimum constraints:")
+    print("-" * 60)
+    for pkg, info in test_result['results'].items():
+        if info['satisfied']:
+            # Extract minimum version from requirement
+            requirement = info.get('requirement', '>=0.0.0')
+            min_version = requirement.lstrip('>=')
+            latest_version = available_versions.get(pkg, ['unknown'])[0]
+            major_version = latest_version.split('.')[0]
+            next_major = str(int(major_version) + 1) if major_version.isdigit() else 'x'
+            print(f"{pkg}>={min_version},<{next_major}.0.0")
+    
+else:
+    print("⚠️ Action required: Install or update dependencies\n")
+    print("📌 Installation commands with version pinning:")
+    print("-" * 60)
+    for pkg, info in test_result['results'].items():
+        latest_version = available_versions.get(pkg, ['unknown'])[0]
+        
+        if not info['satisfied']:
+            print(f"\n{pkg}:")
+            print(f"  Status: Not installed")
+            print(f"  Install command: pip install {pkg}=={latest_version}")
+        elif info.get('adjustment_suggested'):
+            suggested = info['adjustment_suggested']
+            print(f"\n{pkg}:")
+            print(f"  Status: Needs upgrade")
+            print(f"  Upgrade to suggested: pip install --upgrade {pkg}=={suggested}")
+            print(f"  Upgrade to latest: pip install --upgrade {pkg}=={latest_version}")
+
+print("\n" + "=" * 60)
+print("🔐 Version Compatibility Matrix:")
+print("=" * 60)
+
+# Dynamically generate compatibility matrix from available versions
+passlib_versions = available_versions.get('passlib', [])
+bcrypt_versions = available_versions.get('bcrypt', [])
+
+if passlib_versions and bcrypt_versions:
+    # Group bcrypt versions by major.minor
+    bcrypt_groups = {}
+    for v in bcrypt_versions:
+        parts = v.split('.')
+        if len(parts) >= 2:
+            key = f"{parts[0]}.{parts[1]}.x"
+            if key not in bcrypt_groups:
+                bcrypt_groups[key] = v
+    
+    # Show compatibility for passlib 1.7.x with different bcrypt versions
+    passlib_major_minor = f"{passlib_versions[0].split('.')[0]}.{passlib_versions[0].split('.')[1]}.x"
+    for bcrypt_group in list(bcrypt_groups.keys())[:3]:  # Show top 3
+        print(f"  passlib {passlib_major_minor} ↔ bcrypt {bcrypt_group}   ✅ Compatible")
+    
+    print("\n  Recommended combination for production:")
+    print(f"    passlib=={passlib_versions[0]} + bcrypt=={bcrypt_versions[0]}")
+else:
+    print("  Unable to determine version compatibility")
+    print("  Please check package documentation")
